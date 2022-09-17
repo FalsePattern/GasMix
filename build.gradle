@@ -45,8 +45,7 @@ ext.legacyForgeAsmVersion = project.hasProperty("legacyForgeAsmVersion") ? asmVe
 ext.doSignJar = project.hasProperty("keyStorePath")
 
 java {
-    modularity.inferModulePath = false
-    toolchain.languageVersion = JavaLanguageVersion.of(ciSystem == 'unknown' ? 16 : 8)
+    toolchain.languageVersion = JavaLanguageVersion.of(8)
 }
 
 // Project repositories
@@ -70,15 +69,11 @@ repositories {
 
 configurations {
     stagingJar
-    
+    implementation              .extendsFrom shadeImplementation
     exampleImplementation       .extendsFrom implementation
     fernflowerImplementation    .extendsFrom implementation
     launchwrapperImplementation .extendsFrom implementation
     agentImplementation         .extendsFrom implementation
-    modlauncherImplementation   .extendsFrom implementation
-    modlauncher9Implementation  .extendsFrom modlauncherImplementation
-    modularityImplementation    .extendsFrom modlauncher9Implementation
-    modularityCompileOnly       .extendsFrom compileOnly
 }
 
 sourceSets {
@@ -100,7 +95,6 @@ sourceSets {
         compileClasspath += main.output
         ext.languageVersion = 8
         ext.compatibility = '1.6'
-        ext.modularityExcluded = true
     }
     agent {
         compileClasspath += main.output
@@ -111,40 +105,15 @@ sourceSets {
         compileClasspath += main.output
         ext.languageVersion = 8
         ext.compatibility = '1.8'
-        ext.modularityExcluded = true
     }
     example {
         compileClasspath += main.output
         compileClasspath += ap.output
-        ext.modularityExcluded = true
-    }
-    test {
-        ext.modularityExcluded = true
     }
     launchwrapper {
         compileClasspath += main.output
         ext.languageVersion = 8
         ext.compatibility = '1.8'
-    }
-    modlauncher {
-        compileClasspath += main.output
-        ext.languageVersion = 8
-        ext.compatibility = '1.8'
-    }
-    modlauncher4 {
-        compileClasspath += main.output
-        compileClasspath += modlauncher.output
-        ext.languageVersion = 8
-        ext.compatibility = '1.8'
-    }
-    modlauncher9 {
-        ext.languageVersion = 16
-        compileClasspath += main.output
-        compileClasspath += modlauncher.output
-    }
-    modularity {
-        ext.languageVersion = 16
-        ext.modularityExcluded = true // don't add ourselves
     }
 }
 
@@ -161,14 +130,14 @@ potemkinModules {
 dependencies {
     def guava = 'com.google.guava:guava:21.0' // from mc1.12 onwards
     
-    implementation guava
+    shadeImplementation guava
     implementation 'com.google.code.gson:gson:2.2.4'
     if (Float.parseFloat(asmVersion) < 6) {
         implementation "org.ow2.asm:asm-debug-all:$asmVersion"
     }
-    implementation "org.ow2.asm:asm-tree:$asmVersion"
-    implementation "org.ow2.asm:asm-commons:$asmVersion"
-    implementation "org.ow2.asm:asm-util:$asmVersion"
+    shadeImplementation "org.ow2.asm:asm-tree:$asmVersion"
+    shadeImplementation "org.ow2.asm:asm-commons:$asmVersion"
+    shadeImplementation "org.ow2.asm:asm-util:$asmVersion"
 
     // Annotation Processor
     apImplementation "org.ow2.asm:asm-tree:$asmVersion"
@@ -178,42 +147,16 @@ dependencies {
     fernflowerImplementation 'org.jetbrains.java.decompiler:fernflower:sponge-SNAPSHOT'
 
     // LegacyLauncher service
-    launchwrapperImplementation ('net.minecraft:launchwrapper:1.11') {
+    launchwrapperImplementation ('net.minecraft:launchwrapper:1.12') {
         exclude module: 'lwjgl'
         exclude module: 'asm-debug-all'
         exclude module: 'jopt-simple'
     }
-    
-    modlauncherImplementation 'net.sf.jopt-simple:jopt-simple:5.0.4'
-    modlauncherCompileOnly 'org.apache.logging.log4j:log4j-core:2.0-beta9'
-    modlauncherImplementation ("cpw.mods:modlauncher:$legacyModlauncherVersion") {
-        exclude module: 'asm'
-        exclude module: 'asm-analysis'
-        exclude module: 'asm-commons'
-        exclude module: 'asm-tree'
-        exclude module: 'jopt-simple'
-    }
-    
-    modlauncher4Implementation ("cpw.mods:modlauncher:$legacyModlauncherVersion") {
-        exclude module: 'asm'
-        exclude module: 'asm-analysis'
-        exclude module: 'asm-commons'
-        exclude module: 'asm-tree'
-        exclude module: 'jopt-simple'
-    }
-    
-    modlauncher9Implementation ("cpw.mods:modlauncher:$modlauncherVersion") {
-        exclude module: 'jopt-simple'
-    }
-    modlauncher9Implementation 'cpw.mods:securejarhandler:0.9.+'
-    
     // asm bridge
     bridgeImplementation 'org.apache.logging.log4j:log4j-core:2.0-beta9'
     bridgeImplementation "org.ow2.asm:asm-commons:$legacyForgeAsmVersion"
-    
+
     legacyImplementation "org.ow2.asm:asm-tree:$asmVersion"
-    
-    modularityCompileOnly 'org.apache.logging.log4j:log4j-core:2.11.2'
 }
 
 javadoc {
@@ -240,9 +183,6 @@ eclipse {
     classpath {
         containers 'org.eclipse.buildship.core.gradleclasspathcontainer'
         file.whenMerged {
-            // Can't include old modlauncher because it causes issues with modules
-            entries.removeAll { it.kind == 'lib' && it.path =~ ~/modlauncher-$legacyModlauncherVersion/ }
-            entries.removeAll { it.kind == 'src' && it.path =~ ~/modlauncher4/ }
             entries.removeAll { it.kind == 'lib' && it.path =~ ~/log4j.*beta9/ }
             
             // Mark everything else as a module
@@ -264,7 +204,7 @@ eclipse {
     }
     
     // Build service task outputs for test projects
-    autoBuildTasks compileModlauncher4Java, compileModlauncher9Java, compileLaunchwrapperJava
+    autoBuildTasks compileLaunchwrapperJava
 }
 
 // Filter, process, and include resources
@@ -308,7 +248,6 @@ tasks.withType(JavaCompile) {
     options.encoding = 'utf8'
 }
 
-def modularityInputs = objects.fileCollection()
 
 project.sourceSets.each { set -> {
     if (set.ext.has("languageVersion")) {
@@ -320,24 +259,7 @@ project.sourceSets.each { set -> {
         project.tasks[set.compileJavaTaskName].sourceCompatibility = set.ext.compatibility
         project.tasks[set.compileJavaTaskName].targetCompatibility = set.ext.compatibility
     }
-    def modularityExcluded = set.ext.has("modularityExcluded") && set.ext.modularityExcluded
-    if (!modularityExcluded) {
-        project.sourceSets.modularity {
-            compileClasspath += set.output
-        }
-        modularityInputs.from set.output
-    }
 }}
-
-compileModularityJava {
-    inputs.files(modularityInputs)
-    doFirst {
-        options.compilerArgs = [
-            '--module-path', classpath.asPath,
-            '--patch-module', "org.spongepowered.mixin=${modularityInputs.collect { it.absolutePath }.join(File.pathSeparator)}"
-        ]
-    }
-}
 
 if (JavaVersion.current().isJava8Compatible()) {
     tasks.withType(Javadoc) {
@@ -347,10 +269,20 @@ if (JavaVersion.current().isJava8Compatible()) {
 }
 
 task stagingJar(type: ShadowJar) {
+
+    relocate 'com/google/common', 'org/spongepowered/libraries/com/google/common'
+    relocate 'com/google/thirdparty', 'org/spongepowered/libraries/com/google/thirdparty'
+    relocate 'org/objectweb/asm', 'org/spongepowered/asm/lib'
     sourceSets.findAll { !(it.name =~ /example|test/) }.each {
         from it.output
     }
     configurations = [project.configurations.stagingJar]
+
+    project.configurations.shadeImplementation.each { dep ->
+        from (project.zipTree(dep)) {
+            exclude 'META-INF', 'META-INF/**', '**/module-info*'
+        }
+    }
     
     // JAR manifest configuration
     manifest.attributes(
@@ -369,8 +301,9 @@ task stagingJar(type: ShadowJar) {
     if (project.doSignJar) {
         classifier = 'unsigned'
     }
-    
+
     mergeServiceFiles()
+    includeEmptyDirs = false
 }
 
 // Clear artifacts because jar will be there by default and we want to use staging jar instead
@@ -417,7 +350,7 @@ task timestamp(type: Jar, dependsOn: build) {
 }
 
 task sourceJar(type: Jar) {
-    sourceSets.findAll { it.name != 'modularity' }.each {
+    sourceSets.each {
         from it.java
         from it.resources
     }
