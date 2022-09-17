@@ -400,6 +400,33 @@ ext.mavenPom = {
     }
 }
 
+
+def getMavenSettingsCredentials = {
+    String userHome = System.getProperty( "user.home" );
+    File mavenSettings = new File(userHome, ".m2/settings.xml")
+    def xmlSlurper = new XmlSlurper()
+    def output = xmlSlurper.parse(mavenSettings)
+    return output."servers"."server"
+}
+
+def getCredentials = {
+    String username = System.getenv("MAVEN_DEPLOY_USER")
+    String password = System.getenv("MAVEN_DEPLOY_PASSWORD")
+    if (username == null) {
+        try {
+            def entries = getMavenSettingsCredentials()
+            for (entry in entries) {
+                if (entry."id".text() == repositoryName) {
+                    return [username: entry.username.text(), password: entry.password.text()]
+                }
+            }
+        } catch (Exception ignored){}
+        return [username: "none", password: "none"]
+    } else {
+        return [username: username, password: password]
+    }
+}
+
 publishing {
     publications {
         maven(MavenPublication) {
@@ -420,32 +447,13 @@ publishing {
     }
     
     repositories {
-        if (buildType == 'RELEASE') {
-            if (project.hasProperty("releaseRepo")) {
-                maven {
-                    credentials {
-                        username = project.releaseRepoUsername
-                        password = project.releaseRepoPassword
-                    }
-                    url project.releaseRepo
-                }
-            }
-            if (project.hasProperty("spongeReleaseRepo")) {
-                maven {
-                    credentials {
-                        username = project.spongeUsername
-                        password = project.spongePassword
-                    }
-                    url project.spongeReleaseRepo
-                }
-            }
-        } else if (project.hasProperty("spongeSnapshotRepo")) {
-            maven {
-                credentials {
-                    username = project.spongeUsername
-                    password = project.spongePassword
-                }
-                url project.spongeSnapshotRepo
+        maven {
+            name = repositoryName
+            url = repositoryURL
+            def creds = getCredentials()
+            credentials {
+                username = creds?.username ?: "none"
+                password = creds?.password ?: "none"
             }
         }
     }
