@@ -272,6 +272,7 @@ task stagingJar(type: ShadowJar) {
 
     relocate 'com/google/common', 'org/spongepowered/libraries/com/google/common'
     relocate 'com/google/thirdparty', 'org/spongepowered/libraries/com/google/thirdparty'
+    relocate 'org/objectweb/asm/commons/Remapper', 'org/objectweb/asm/commons/Remapper'
     relocate 'org/objectweb/asm', 'org/spongepowered/asm/lib'
     sourceSets.findAll { !(it.name =~ /example|test/) }.each {
         from it.output
@@ -280,7 +281,7 @@ task stagingJar(type: ShadowJar) {
 
     project.configurations.shadeImplementation.each { dep ->
         from (project.zipTree(dep)) {
-            exclude 'META-INF', 'META-INF/**', '**/module-info*'
+            exclude 'META-INF', 'META-INF/**', '**/module-info*', 'org/objectweb/asm/commons/Remapper.*'
         }
     }
     
