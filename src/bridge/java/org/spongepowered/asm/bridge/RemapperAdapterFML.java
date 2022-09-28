@@ -28,9 +28,12 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 import org.spongepowered.asm.mixin.extensibility.IRemapper;
+import __stub.org.objectweb.asm.commons.Remapper;
 
 /**
  * Remapper adapter which remaps using FML's deobfuscating remapper
+ * <br>
+ * Modifications by FalsePattern: Changed references from org.objectweb.asm.commons.Remapper to Remapper.
  */
 public final class RemapperAdapterFML extends RemapperAdapter {
     
@@ -42,7 +45,7 @@ public final class RemapperAdapterFML extends RemapperAdapter {
     
     private final Method mdUnmap;
     
-    private RemapperAdapterFML(org.objectweb.asm.commons.Remapper remapper, Method mdUnmap) {
+    private RemapperAdapterFML(Remapper remapper, Method mdUnmap) {
         super(remapper);
         this.logger.info("Initialised Mixin FML Remapper Adapter with {}", remapper);
         this.mdUnmap = mdUnmap;
@@ -65,7 +68,7 @@ public final class RemapperAdapterFML extends RemapperAdapter {
             Class<?> clDeobfRemapper = RemapperAdapterFML.getFMLDeobfuscatingRemapper();
             Field singletonField = clDeobfRemapper.getDeclaredField(RemapperAdapterFML.INSTANCE_FIELD);
             Method mdUnmap = clDeobfRemapper.getDeclaredMethod(RemapperAdapterFML.UNMAP_METHOD, String.class);
-            org.objectweb.asm.commons.Remapper remapper = (org.objectweb.asm.commons.Remapper)singletonField.get(null);
+            Remapper remapper = (Remapper)singletonField.get(null);
             return new RemapperAdapterFML(remapper, mdUnmap);
         } catch (Exception ex) {
             ex.printStackTrace();

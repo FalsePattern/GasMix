@@ -25,19 +25,21 @@
 package org.spongepowered.asm.bridge;
 
 import org.spongepowered.asm.logging.ILogger;
-import org.objectweb.asm.commons.Remapper;
 import org.spongepowered.asm.mixin.extensibility.IRemapper;
 import org.spongepowered.asm.service.MixinService;
 import org.spongepowered.asm.util.ObfuscationUtil;
 import org.spongepowered.asm.util.ObfuscationUtil.IClassRemapper;
+import __stub.org.objectweb.asm.commons.Remapper;
 
 /**
- * Base impl of remapper
+ * Base impl of remapper.
+ * <br>
+ * Modifications by @falsepattern: Changed references of the Remapper to the stub class.
  */
 public abstract class RemapperAdapter implements IRemapper, IClassRemapper {
 
     protected final ILogger logger = MixinService.getService().getLogger("mixin");
-    protected final org.objectweb.asm.commons.Remapper remapper;
+    protected final Remapper remapper;
     
     public RemapperAdapter(Remapper remapper) {
         this.remapper = remapper;

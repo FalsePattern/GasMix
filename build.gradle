@@ -221,6 +221,7 @@ license {
         url = project.url
     }
     include '**/*.java'
+    exclude '**/__stub/**'
     header file("HEADER.txt")
     sourceSets = project.sourceSets
     ignoreFailures false
@@ -272,16 +273,18 @@ task stagingJar(type: ShadowJar) {
 
     relocate 'com/google/common', 'org/spongepowered/libraries/com/google/common'
     relocate 'com/google/thirdparty', 'org/spongepowered/libraries/com/google/thirdparty'
-    relocate 'org/objectweb/asm/commons/Remapper', 'org/objectweb/asm/commons/Remapper'
     relocate 'org/objectweb/asm', 'org/spongepowered/asm/lib'
+    relocate '__stub/', ''
     sourceSets.findAll { !(it.name =~ /example|test/) }.each {
-        from it.output
+        from (it.output) {
+            exclude '**/__stub/**'
+        }
     }
     configurations = [project.configurations.stagingJar]
 
     project.configurations.shadeImplementation.each { dep ->
         from (project.zipTree(dep)) {
-            exclude 'META-INF', 'META-INF/**', '**/module-info*', 'org/objectweb/asm/commons/Remapper.*'
+            exclude 'META-INF', 'META-INF/**', '**/module-info*'
         }
     }
     
